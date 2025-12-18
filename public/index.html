@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy Manager - Panel de Control</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .status-online { @apply bg-green-500; }
+        .status-offline { @apply bg-gray-500; }
+        .status-error { @apply bg-red-500; }
+        .status-warning { @apply bg-yellow-500; }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .log-entry {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="gradient-bg text-white p-6 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="rocket" class="w-8 h-8"></i>
+                <div>
+                    <h1 class="text-2xl font-bold">Deploy Manager</h1>
+                    <p class="text-sm opacity-90">Panel de Control de Proyectos Self-Hosted</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <p class="text-xs opacity-75">Estado del Sistema</p>
+                    <p id="system-status" class="font-semibold">Verificando...</p>
+                </div>
+                <div id="connection-indicator" class="w-3 h-3 bg-green-400 rounded-full pulse"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-6">
+        <!-- System Info Bar -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="cpu" class="w-5 h-5 text-blue-500"></i>
+                    <div>
+                        <p class="text-xs text-gray-500">CPU</p>
+                        <p id="cpu-usage" class="font-semibold">0%</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="memory" class="w-5 h-5 text-green-500"></i>
+                    <div>
+                        <p class="text-xs text-gray-500">Memoria</p>
+                        <p id="memory-usage" class="font-semibold">0 GB / 0 GB</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="hard-drive" class="w-5 h-5 text-purple-500"></i>
+                    <div>
+                        <p class="text-xs text-gray-500">Disco</p>
+                        <p id="disk-usage" class="font-semibold">0 GB libre</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="gpu" class="w-5 h-5 text-orange-500"></i>
+                    <div>
+                        <p class="text-xs text-gray-500">GPU</p>
+                        <p id="gpu-status" class="font-semibold">No detectada</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-wrap gap-2">
+                <button onclick="filterProjects('all')" class="filter-btn px-4 py-2 rounded-lg bg-blue-500 text-white" data-category="all">
+                    Todos
+                </button>
+                <button onclick="filterProjects('low-gpu')" class="filter-btn px-4 py-2 rounded-lg bg-gray-200" data-category="low-gpu">
+                    <i data-lucide="check-circle" class="w-4 h-4 inline mr-1"></i>
+                    Bajo GPU
+                </button>
+                <button onclick="filterProjects('no-gpu')" class="filter-btn px-4 py-2 rounded-lg bg-gray-200" data-category="no-gpu">
+                    <i data-lucide="monitor" class="w-4 h-4 inline mr-1"></i>
+                    Sin GPU
+                </button>
+                <button onclick="filterProjects('configurable-gpu')" class="filter-btn px-4 py-2 rounded-lg bg-gray-200" data-category="configurable-gpu">
+                    <i data-lucide="settings" class="w-4 h-4 inline mr-1"></i>
+                    Configurable
+                </button>
+                <button onclick="filterProjects('high-gpu')" class="filter-btn px-4 py-2 rounded-lg bg-gray-200" data-category="high-gpu">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+                    Alto GPU
+                </button>
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Projects will be loaded here dynamically -->
+        </div>
+
+        <!-- Logs Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold flex items-center">
+                    <i data-lucide="file-text" class="w-5 h-5 mr-2"></i>
+                    Logs del Sistema
+                </h2>
+                <button onclick="clearLogs()" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div id="logs-container" class="bg-gray-900 text-green-400 p-4 rounded-lg h-64 overflow-y-auto font-mono text-sm">
+                <!-- Logs will appear here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let socket;
+        let projects = [];
+        let systemInfo = {};
+        let currentFilter = 'all';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSocket();
+            lucide.createIcons();
+        });
+
+        // Socket connection
+        function initializeSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                updateConnectionStatus(true);
+                console.log('Conectado al servidor');
+            });
+
+            socket.on('disconnect', () => {
+                updateConnectionStatus(false);
+                console.log('Desconectado del servidor');
+            });
+
+            socket.on('initial-data', (data) => {
+                projects = data.projects;
+                systemInfo = data.systemInfo;
+                updateProjectsGrid();
+                updateSystemInfo();
+                updateLogs(data.logs);
+            });
+
+            socket.on('project-status', (data) => {
+                updateProjectStatus(data.projectId, data.status);
+            });
+
+            socket.on('projects-status-update', (statuses) => {
+                for (const [projectId, status] of Object.entries(statuses)) {
+                    updateProjectStatus(projectId, status);
+                }
+            });
+
+            socket.on('system-update', (info) => {
+                systemInfo = info;
+                updateSystemInfo();
+            });
+        }
+
+        // UI Update functions
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connection-indicator');
+            indicator.className = connected ? 
+                'w-3 h-3 bg-green-400 rounded-full pulse' : 
+                'w-3 h-3 bg-red-400 rounded-full';
+            
+            document.getElementById('system-status').textContent = connected ? 
+                'Conectado' : 'Desconectado';
+        }
+
+        function updateProjectsGrid() {
+            const grid = document.getElementById('projects-grid');
+            const filteredProjects = filterProjectsByCategory(projects, currentFilter);
+            
+            grid.innerHTML = filteredProjects.map(project => createProjectCard(project)).join('');
+        }
+
+        function createProjectCard(project) {
+            const status = project.status || {};
+            const isRunning = status.running || false;
+            const hasWarning = project.warning;
+            const categoryColor = getCategoryColor(project.category);
+            
+            return `
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover border-l-4 ${categoryColor}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">${project.name}</h3>
+                            <p class="text-sm text-gray-600 mt-1">${project.description}</p>
+                        </div>
+                        <div class="flex flex-col items-end space-y-2">
+                            <span class="w-3 h-3 rounded-full ${isRunning ? 'bg-green-500' : 'bg-gray-400'}"></span>
+                            <span class="text-xs px-2 py-1 rounded-full ${categoryColor} text-white">
+                                ${getCategoryLabel(project.category)}
+                            </span>
+                        </div>
+                    </div>
+
+                    ${hasWarning ? `
+                        <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+                            <p class="text-sm text-yellow-800">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+                                ${project.warning}
+                            </p>
+                        </div>
+                    ` : ''}
+
+                    <div class="mb-4">
+                        <div class="flex items-center text-sm text-gray-600 mb-2">
+                            <i data-lucide="globe" class="w-4 h-4 mr-2"></i>
+                            ${status.port?.url ? `
+                                <a href="${status.port.url}" target="_blank" class="text-blue-500 hover:underline">
+                                    ${status.port.url}
+                                </a>
+                            ` : '<span class="text-gray-500">No disponible</span>'}
+                        </div>
+                        ${status.port?.number ? `
+                            <div class="flex items-center text-sm text-gray-600">
+                                <i data-lucide="server" class="w-4 h-4 mr-2"></i>
+                                Puerto: ${status.port.number}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-600 mb-2">Recursos:</div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="flex items-center">
+                                <i data-lucide="cpu" class="w-3 h-3 mr-1"></i>
+                                CPU: ${project.resources.cpu}
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="memory" class="w-3 h-3 mr-1"></i>
+                                RAM: ${project.resources.ram}
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="gpu" class="w-3 h-3 mr-1"></i>
+                                GPU: ${project.resources.gpu}
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="hard-drive" class="w-3 h-3 mr-1"></i>
+                                Storage: ${project.resources.storage}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-600 mb-2">Características:</div>
+                        <div class="flex flex-wrap gap-1">
+                            ${project.features.map(feature => `
+                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                    ${formatFeature(feature)}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        ${!isRunning ? `
+                            <button onclick="startProject('${project.id}')" 
+                                class="flex-1 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition flex items-center justify-center">
+                                <i data-lucide="play" class="w-4 h-4 mr-2"></i>
+                                Iniciar
+                            </button>
+                        ` : `
+                            <button onclick="stopProject('${project.id}')" 
+                                class="flex-1 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition flex items-center justify-center">
+                                <i data-lucide="square" class="w-4 h-4 mr-2"></i>
+                                Detener
+                            </button>
+                        `}
+                        
+                        <button onclick="restartProject('${project.id}')" 
+                            class="flex-1 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition flex items-center justify-center">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                            Reiniciar
+                        </button>
+                        
+                        <button onclick="showProjectLogs('${project.id}')" 
+                            class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateSystemInfo() {
+            if (systemInfo.cpu) {
+                document.getElementById('cpu-usage').textContent = `${systemInfo.cpu.usage}%`;
+            }
+            
+            if (systemInfo.memory) {
+                const memoryText = `${systemInfo.memory.used}GB / ${systemInfo.memory.total}GB (${systemInfo.memory.percentage}%)`;
+                document.getElementById('memory-usage').textContent = memoryText;
+            }
+            
+            if (systemInfo.disk) {
+                document.getElementById('disk-usage').textContent = `${systemInfo.disk.available}GB libre`;
+            }
+            
+            if (systemInfo.gpu) {
+                const gpuText = systemInfo.gpu.available ? 
+                    `${systemInfo.gpu.controllers.length} detectada(s)` : 
+                    'No detectada';
+                document.getElementById('gpu-status').textContent = gpuText;
+            }
+        }
+
+        function updateLogs(logs) {
+            const container = document.getElementById('logs-container');
+            const logsHtml = logs.slice(-20).reverse().map(log => `
+                <div class="log-entry mb-2">
+                    <span class="text-gray-500">[${new Date(log.timestamp).toLocaleTimeString()}]</span>
+                    <span class="text-${getLogLevelColor(log.level)}">[${log.level.toUpperCase()}]</span>
+                    ${log.message}
+                </div>
+            `).join('');
+            
+            container.innerHTML = logsHtml;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateProjectStatus(projectId, status) {
+            const projectIndex = projects.findIndex(p => p.id === projectId);
+            if (projectIndex !== -1) {
+                projects[projectIndex].status = status;
+                updateProjectsGrid();
+            }
+        }
+
+        // Action functions
+        function startProject(projectId) {
+            socket.emit('start-project', projectId);
+        }
+
+        function stopProject(projectId) {
+            socket.emit('stop-project', projectId);
+        }
+
+        function restartProject(projectId) {
+            socket.emit('restart-project', projectId);
+        }
+
+        function showProjectLogs(projectId) {
+            socket.emit('get-project-logs', projectId);
+            // Aquí podríamos mostrar un modal con los logs del proyecto
+            alert('Función de logs por proyecto próximamente disponible');
+        }
+
+        function filterProjects(category) {
+            currentFilter = category;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.className = 'filter-btn px-4 py-2 rounded-lg bg-blue-500 text-white';
+                } else {
+                    btn.className = 'filter-btn px-4 py-2 rounded-lg bg-gray-200';
+                }
+            });
+            
+            updateProjectsGrid();
+        }
+
+        function filterProjectsByCategory(projects, category) {
+            if (category === 'all') return projects;
+            return projects.filter(project => project.category === category);
+        }
+
+        function clearLogs() {
+            if (confirm('¿Estás seguro de que quieres limpiar todos los logs?')) {
+                // Implementar limpieza de logs
+                alert('Función de limpieza próximamente disponible');
+            }
+        }
+
+        // Helper functions
+        function getCategoryColor(category) {
+            const colors = {
+                'low-gpu': 'border-green-500',
+                'no-gpu': 'border-blue-500',
+                'configurable-gpu': 'border-yellow-500',
+                'high-gpu': 'border-red-500'
+            };
+            return colors[category] || 'border-gray-500';
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                'low-gpu': 'Bajo GPU',
+                'no-gpu': 'Sin GPU',
+                'configurable-gpu': 'Configurable',
+                'high-gpu': 'Alto GPU'
+            };
+            return labels[category] || category;
+        }
+
+        function formatFeature(feature) {
+            return feature.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+
+        function getLogLevelColor(level) {
+            const colors = {
+                'info': 'green-400',
+                'warn': 'yellow-400',
+                'error': 'red-400',
+                'debug': 'blue-400'
+            };
+            return colors[level] || 'gray-400';
+        }
+    </script>
+</body>
+</html>

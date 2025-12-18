@@ -1,0 +1,212 @@
+{
+  "video-text-editor": {
+    "name": "Video Text Editor",
+    "description": "Video editor con AI basado en transcripción",
+    "category": "low-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/video-text-editor",
+    "defaultPort": 5173,
+    "serviceScript": "./video-text-editor-service.sh",
+    "healthCheck": {
+      "type": "http",
+      "path": "/",
+      "timeout": 5000
+    },
+    "requirements": {
+      "node": true,
+      "npm": true,
+      "ports": [5173]
+    },
+    "resources": {
+      "ram": "low",
+      "cpu": "low",
+      "gpu": "none",
+      "storage": "low"
+    },
+    "features": ["transcription", "video-editing", "browser-based"]
+  },
+  "penpot": {
+    "name": "Penpot",
+    "description": "Herramienta de diseño colaborativo (Figma alternativa)",
+    "category": "no-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/penpot",
+    "defaultPort": 9001,
+    "serviceScript": "./start-penpot.sh",
+    "dockerCompose": true,
+    "dockerPath": "./docker/images",
+    "healthCheck": {
+      "type": "http",
+      "path": "/",
+      "timeout": 10000
+    },
+    "requirements": {
+      "docker": true,
+      "ports": [9001, 1080]
+    },
+    "resources": {
+      "ram": "medium",
+      "cpu": "medium",
+      "gpu": "none",
+      "storage": "medium"
+    },
+    "features": ["design", "collaboration", "svg", "design-tokens"]
+  },
+  "open-cut": {
+    "name": "Open-Cut",
+    "description": "Editor de video open-source y privacy-focused",
+    "category": "low-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/open-cut",
+    "defaultPort": 3000,
+    "serviceScript": "./opencut-service.sh",
+    "managedBy": "deploy-manager",
+    "healthCheck": {
+      "type": "http",
+      "path": "/api/health",
+      "timeout": 5000
+    },
+    "requirements": {
+      "docker": true,
+      "bun": true,
+      "ports": [3000, 5432, 6379, 8079]
+    },
+    "resources": {
+      "ram": "medium",
+      "cpu": "medium",
+      "gpu": "none",
+      "storage": "medium"
+    },
+    "features": ["video-editing", "timeline", "real-time-preview", "privacy"]
+  },
+  "sisgec": {
+    "name": "SISGEC",
+    "description": "Sistema Gestor de Expedientes Clínicos",
+    "category": "no-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/SISGEC",
+    "defaultPort": 8000,
+    "serviceScript": null,
+    "healthCheck": {
+      "type": "http",
+      "path": "/",
+      "timeout": 5000
+    },
+    "requirements": {
+      "php": true,
+      "composer": true,
+      "node": true,
+      "npm": true,
+      "ports": [8000]
+    },
+    "resources": {
+      "ram": "low",
+      "cpu": "low",
+      "gpu": "none",
+      "storage": "low"
+    },
+    "features": ["medical-records", "healthcare", "crud"]
+  },
+  "biniou": {
+    "name": "Biniou",
+    "description": "Multi-generador AI con múltiples modelos",
+    "category": "configurable-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/biniou",
+    "defaultPort": 7860,
+    "serviceScript": "./biniou-service.sh",
+    "healthCheck": {
+      "type": "https",
+      "path": "/",
+      "timeout": 10000,
+      "verifySSL": false
+    },
+    "requirements": {
+      "python": true,
+      "ports": [7860]
+    },
+    "resources": {
+      "ram": "high",
+      "cpu": "high",
+      "gpu": "optional",
+      "storage": "high"
+    },
+    "features": ["text-generation", "image-generation", "audio-generation", "video-generation", "multi-modal"],
+    "gpuModes": ["cpu", "cuda", "rocm"]
+  },
+  "profitpilot": {
+    "name": "ProfitPilot",
+    "description": "Agente de ventas autónomo con IA",
+    "category": "high-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/ProfitPilot",
+    "defaultPort": 8501,
+    "serviceScript": null,
+    "dockerCompose": true,
+    "healthCheck": {
+      "type": "http",
+      "path": "/",
+      "timeout": 5000
+    },
+    "requirements": {
+      "python": true,
+      "docker": true,
+      "ports": [8501]
+    },
+    "resources": {
+      "ram": "high",
+      "cpu": "high",
+      "gpu": "recommended",
+      "storage": "medium"
+    },
+    "features": ["ai-agent", "sales", "automation", "api-integration"],
+    "warning": "Requiere API keys de OpenAI para funcionamiento completo"
+  },
+  "fauxpilot": {
+    "name": "FauxPilot",
+    "description": "Alternativa local a GitHub Copilot",
+    "category": "high-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/fauxpilot/fauxpilot-main",
+    "defaultPort": 5000,
+    "serviceScript": null,
+    "dockerCompose": true,
+    "healthCheck": {
+      "type": "http",
+      "path": "/",
+      "timeout": 5000
+    },
+    "requirements": {
+      "nvidia-gpu": true,
+      "docker": true,
+      "ports": [5000, 8000]
+    },
+    "resources": {
+      "ram": "high",
+      "cpu": "high",
+      "gpu": "required",
+      "storage": "high"
+    },
+    "features": ["code-generation", "copilot-alternative", "local-ai"],
+    "warning": "Requiere GPU NVIDIA con 6GB+ VRAM mínimo"
+  },
+  "vace": {
+    "name": "VACE AI Editor",
+    "description": "Editor de video AI todo-en-uno",
+    "category": "high-gpu",
+    "path": "/media/franco/datos-bkp/SELF-HOSTED/VACE-ai-editor",
+    "defaultPort": 7860,
+    "serviceScript": "./vace-service.sh",
+    "healthCheck": {
+      "type": "http",
+      "path": "/",
+      "timeout": 10000
+    },
+    "requirements": {
+      "python": true,
+      "high-end-gpu": true,
+      "ports": [7860]
+    },
+    "resources": {
+      "ram": "extreme",
+      "cpu": "extreme",
+      "gpu": "required-high",
+      "storage": "extreme"
+    },
+    "features": ["video-generation", "video-editing", "ai-models", "multi-gpu"],
+    "warning": "Requiere GPU high-end con 12GB+ VRAM y CUDA 12.4+"
+  }
+}

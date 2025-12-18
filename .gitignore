@@ -1,0 +1,7 @@
+node_modules/
+logs/
+.env
+.deploy-manager.pid
+npm-debug.log
+.idea/
+.vscode/

@@ -1,0 +1,38 @@
+{
+  "server": {
+    "port": 3001,
+    "host": "0.0.0.0",
+    "autoRestart": true,
+    "logLevel": "info"
+  },
+  "security": {
+    "enableAuth": false,
+    "secretKey": null,
+    "allowedOrigins": ["http://localhost:3001", "http://127.0.0.1:3001"]
+  },
+  "monitoring": {
+    "updateInterval": 5000,
+    "healthCheckInterval": 10000,
+    "maxLogsInMemory": 1000,
+    "enablePerformanceMonitoring": true
+  },
+  "projects": {
+    "autoDetect": true,
+    "projectsPath": "/media/franco/datos-bkp/SELF-HOSTED",
+    "concurrentLimit": 5,
+    "defaultTimeout": 30000
+  },
+  "notifications": {
+    "enableSystemNotifications": true,
+    "enableEmailNotifications": false,
+    "smtpConfig": null
+  },
+  "ui": {
+    "theme": "light",
+    "language": "es",
+    "refreshInterval": 5000,
+    "showSystemInfo": true,
+    "showProjectFeatures": true,
+    "enableDarkMode": true
+  }
+}

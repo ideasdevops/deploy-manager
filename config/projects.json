@@ -55,9 +55,10 @@
     "description": "Editor de video open-source y privacy-focused",
     "category": "low-gpu",
     "path": "/media/franco/datos-bkp/SELF-HOSTED/open-cut",
-    "defaultPort": 3000,
+    "defaultPort": 3100,
     "serviceScript": "./opencut-service.sh",
-    "managedBy": "deploy-manager",
+    "manualStart": true,
+    "note": "Requiere bun y docker; ejecuta mediante script de servicio",
     "healthCheck": {
       "type": "http",
       "path": "/api/health",
@@ -66,7 +67,7 @@
     "requirements": {
       "docker": true,
       "bun": true,
-      "ports": [3000, 5432, 6379, 8079]
+      "ports": [3100, 5432, 6379, 8079]
     },
     "resources": {
       "ram": "medium",

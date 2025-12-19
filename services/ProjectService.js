@@ -189,8 +189,13 @@ class ProjectService {
   }
 
   async startDockerProject(config) {
-    const { path, dockerPath } = config;
-    const workingDir = dockerPath || path;
+    const { path: projectPath, dockerPath } = config;
+    let workingDir;
+    if (dockerPath) {
+      workingDir = path.isAbsolute(dockerPath) ? dockerPath : path.join(projectPath, dockerPath);
+    } else {
+      workingDir = projectPath;
+    }
 
     if (!fs.existsSync(workingDir)) {
       throw new Error(`Directorio no encontrado: ${workingDir}`);
@@ -208,15 +213,15 @@ class ProjectService {
   }
 
   async startScriptProject(config) {
-    const { path, serviceScript } = config;
-    const scriptPath = path.join(path, serviceScript);
+    const { path: projectPath, serviceScript } = config;
+    const scriptPath = path.join(projectPath, serviceScript);
 
     if (!fs.existsSync(scriptPath)) {
       throw new Error(`Script no encontrado: ${scriptPath}`);
     }
 
     return new Promise((resolve, reject) => {
-      exec(`cd "${path}" && chmod +x "${serviceScript}" && ./"${serviceScript}" start`, 
+      exec(`cd "${projectPath}" && chmod +x "${serviceScript}" && ./${serviceScript} start`, 
         { timeout: 30000 },
         (error, stdout, stderr) => {
           if (error) {
@@ -271,8 +276,13 @@ class ProjectService {
   }
 
   async stopDockerProject(config) {
-    const { path, dockerPath } = config;
-    const workingDir = dockerPath || path;
+    const { path: projectPath, dockerPath } = config;
+    let workingDir;
+    if (dockerPath) {
+      workingDir = path.isAbsolute(dockerPath) ? dockerPath : path.join(projectPath, dockerPath);
+    } else {
+      workingDir = projectPath;
+    }
 
     return new Promise((resolve, reject) => {
       exec(`cd "${workingDir}" && docker-compose down`, { timeout: 30000 }, (error, stdout, stderr) => {
@@ -286,15 +296,15 @@ class ProjectService {
   }
 
   async stopScriptProject(config) {
-    const { path, serviceScript } = config;
-    const scriptPath = path.join(path, serviceScript);
+    const { path: projectPath, serviceScript } = config;
+    const scriptPath = path.join(projectPath, serviceScript);
 
     if (!fs.existsSync(scriptPath)) {
       throw new Error(`Script no encontrado: ${scriptPath}`);
     }
 
     return new Promise((resolve, reject) => {
-      exec(`cd "${path}" && ./"${serviceScript}" stop`, 
+      exec(`cd "${projectPath}" && ./${serviceScript} stop`, 
         { timeout: 30000 },
         (error, stdout, stderr) => {
           if (error) {
